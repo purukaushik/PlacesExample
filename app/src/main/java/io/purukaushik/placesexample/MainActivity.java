@@ -21,7 +21,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        placesService = new Intent(MainActivity.this, PlacesService.class);
+        placesService = new Intent(MainActivity.this, LocationService.class);
         startService(placesService);
     }
 
