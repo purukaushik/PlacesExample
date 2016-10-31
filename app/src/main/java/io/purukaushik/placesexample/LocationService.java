@@ -1,10 +1,8 @@
 package io.purukaushik.placesexample;
 
-import android.*;
 import android.Manifest;
 import android.app.IntentService;
 import android.content.Intent;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
@@ -23,7 +21,6 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.PlaceLikelihoodBuffer;
 import com.google.android.gms.location.places.Places;
-import com.google.android.gms.maps.model.LatLng;
 
 import java.text.DateFormat;
 import java.util.Date;
@@ -79,9 +76,8 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
+        mGoogleApiClient = new GoogleApiClient.Builder(this).addApi(Places.GEO_DATA_API).addApi(Places.PLACE_DETECTION_API).build();
         Toast.makeText(this, "Starting to identify places.", Toast.LENGTH_SHORT).show();
-        identifyPlacesAndToast();
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -115,7 +111,38 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
 
             @Override
             public void run() {
-                identifyPlacesAndToast();
+                if (ContextCompat.checkSelfPermission(getBaseContext(), android.Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED) {
+                    Log.e("PlacesService: Thread", "Broken Permissions.");
+                    return;
+                }
+                Log.i(TAG, "Getting Your Current Place.");
+
+                Log.i(TAG, "Hearbeat");
+                Log.i(TAG, "mGoogleApiClient: " + mGoogleApiClient.toString());
+
+                if (mGoogleApiClient.isConnected()) {
+                    Log.i(TAG, "Connected to API server.");
+                } else {
+                    Log.i(TAG, "not connected. Connecting...");
+                    mGoogleApiClient.connect();
+                    Log.i(TAG, "Connected again.");
+                }
+                PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi
+                        .getCurrentPlace(mGoogleApiClient, null);
+                Log.i(TAG, "PlaceApiObject: " + result.toString());
+                String place = "";
+
+                result.setResultCallback(new ResultCallback<PlaceLikelihoodBuffer>() {
+
+                    @Override
+                    public void onResult(PlaceLikelihoodBuffer likelyPlaces) {
+                        Toast.makeText(getBaseContext(), String.format("LatLng : %s, %s",
+                                mLastLocation.getLatitude(),mLastLocation.getLongitude()), Toast.LENGTH_SHORT);
+                        Toast.makeText(getBaseContext(), String.format("You're at: %s ", likelyPlaces.get(0).getPlace().getName()), Toast.LENGTH_SHORT).show();
+                        likelyPlaces.release();
+                    }
+                });
 
             }
 
@@ -123,40 +150,5 @@ public class LocationService extends IntentService implements GoogleApiClient.Co
 
 
         Log.i(TAG, "Thread Started.");
-    }
-
-    private void identifyPlacesAndToast() {
-        if (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_FINE_LOCATION
-        ) != PackageManager.PERMISSION_GRANTED) {
-            Log.e("PlacesService: Thread", "Broken Permissions.");
-            return;
-        }
-        Log.i(TAG, "Getting Your Current Place.");
-
-        Log.i(TAG, "Hearbeat");
-        Log.i(TAG, "mGoogleApiClient: " + mGoogleApiClient.toString());
-
-        if (mGoogleApiClient.isConnected()) {
-            Log.i(TAG, "Connected to API server.");
-        } else {
-            Log.i(TAG, "not connected. Connecting...");
-            mGoogleApiClient.connect();
-            Log.i(TAG, "Connected again.");
-        }
-        PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi
-                .getCurrentPlace(mGoogleApiClient, null);
-        Log.i(TAG, "PlaceApiObject: " + result.toString());
-        String place = "";
-
-        result.setResultCallback(new ResultCallback<PlaceLikelihoodBuffer>() {
-
-            @Override
-            public void onResult(PlaceLikelihoodBuffer likelyPlaces) {
-                Toast.makeText(getBaseContext(), String.format("LatLng : %s, %s",
-                        mLastLocation.getLatitude(),mLastLocation.getLongitude()), Toast.LENGTH_SHORT).show();
-                Toast.makeText(getBaseContext(), String.format("You're at: %s ", likelyPlaces.get(0).getPlace().getName()), Toast.LENGTH_SHORT).show();
-                likelyPlaces.release();
-            }
-        });
     }
 }
