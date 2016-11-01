@@ -2,11 +2,13 @@ package io.purukaushik.placesexample;
 
 import android.app.IntentService;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.Toast;
@@ -37,6 +39,7 @@ public class PlacesService extends IntentService implements GoogleApiClient.OnCo
     public static final String TAG = "PlacesService";
 
     List<Integer> places = new ArrayList<>();
+
     public PlacesService() {
         super("PlacesService");
     }
@@ -52,23 +55,17 @@ public class PlacesService extends IntentService implements GoogleApiClient.OnCo
 
             @Override
             public void run() {
-                if (ContextCompat.checkSelfPermission(getBaseContext(), android.Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED) {
+                if ((ContextCompat.checkSelfPermission((getApplicationContext()), android.Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED)) {
                     Log.e("PlacesService: Thread", "Broken Permissions.");
                     return;
                 }
                 Log.i(TAG, "Getting Your Current Place.");
 
-                Log.i(TAG, "Hearbeat");
-                Log.i(TAG, "mGoogleApiClient: " + mGoogleApiClient.toString());
+//                Log.i(TAG, "Hearbeat");
+//                Log.i(TAG, "mGoogleApiClient: " + mGoogleApiClient.toString());
 
-                if (mGoogleApiClient.isConnected()) {
-                    Log.i(TAG, "Connected to API server.");
-                } else {
-                    Log.i(TAG, "not connected. Connecting...");
-                    mGoogleApiClient.connect();
-                    Log.i(TAG, "Connected again.");
-                }
+
                 PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi
                         .getCurrentPlace(mGoogleApiClient, null);
                 Log.i(TAG, "PlaceApiObject: " + result.toString());
@@ -81,6 +78,7 @@ public class PlacesService extends IntentService implements GoogleApiClient.OnCo
 
                     @Override
                     public void onResult(PlaceLikelihoodBuffer likelyPlaces) {
+                        Log.i(TAG, "ResultCallback");
                         Toast.makeText(getBaseContext(), String.format("You're at: %s ", likelyPlaces.get(0).getPlace().getName()), Toast.LENGTH_SHORT).show();
                         places = likelyPlaces.get(0).getPlace().getPlaceTypes();
                         Log.i(TAG, String.format("", places));
@@ -88,8 +86,8 @@ public class PlacesService extends IntentService implements GoogleApiClient.OnCo
                         likelyPlaces.release();
                     }
                 });
-                for(Integer i : places){
-                    Log.i(TAG,"Place Id: "+i);
+                for (Integer i : places) {
+                    Log.i(TAG, "Place Id: " + i);
                 }
 
             }
@@ -104,7 +102,13 @@ public class PlacesService extends IntentService implements GoogleApiClient.OnCo
     public void onCreate() {
         super.onCreate();
         mGoogleApiClient = new GoogleApiClient.Builder(this).addApi(Places.GEO_DATA_API).addApi(Places.PLACE_DETECTION_API).build();
-
+        if (mGoogleApiClient.isConnected()) {
+            Log.i(TAG, "Connected to API server.");
+        } else {
+            Log.i(TAG, "not connected. Connecting...");
+            mGoogleApiClient.connect();
+            Log.i(TAG, "Connected again.");
+        }
     }
 
     @Override
@@ -126,4 +130,8 @@ public class PlacesService extends IntentService implements GoogleApiClient.OnCo
         Log.e(TAG, "No Api connection");
     }
 
+    public static boolean checkPermissions(final Context context) {
+        return (ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) != PackageManager.PERMISSION_GRANTED);
+    }
 }
